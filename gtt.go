@@ -26,7 +26,6 @@ import (
 	"github.com/penny-vault/pvbt/data"
 	"github.com/penny-vault/pvbt/engine"
 	"github.com/penny-vault/pvbt/portfolio"
-	"github.com/penny-vault/pvbt/tradecron"
 	"github.com/penny-vault/pvbt/universe"
 )
 
@@ -47,15 +46,7 @@ func (s *GrowthTrendTiming) Name() string {
 	return "Growth-Trend Timing"
 }
 
-func (s *GrowthTrendTiming) Setup(eng *engine.Engine) {
-	tc, err := tradecron.New("@monthend", tradecron.MarketHours{Open: 930, Close: 1600})
-	if err != nil {
-		panic(err)
-	}
-
-	eng.Schedule(tc)
-	eng.SetBenchmark(eng.Asset("VFINX"))
-}
+func (s *GrowthTrendTiming) Setup(_ *engine.Engine) {}
 
 func (s *GrowthTrendTiming) Describe() engine.StrategyDescription {
 	return engine.StrategyDescription{
@@ -64,10 +55,12 @@ func (s *GrowthTrendTiming) Describe() engine.StrategyDescription {
 		Source:      "https://www.philosophicaleconomics.com/2016/02/uetrend/",
 		Version:     "1.0.0",
 		VersionDate: time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC),
+		Schedule:    "@monthend",
+		Benchmark:   "VFINX",
 	}
 }
 
-func (s *GrowthTrendTiming) Compute(ctx context.Context, eng *engine.Engine, strategyPortfolio portfolio.Portfolio) error {
+func (s *GrowthTrendTiming) Compute(ctx context.Context, eng *engine.Engine, strategyPortfolio portfolio.Portfolio, batch *portfolio.Batch) error {
 	// 1. Fetch equity prices for the SMA calculation.
 	equityDF, err := s.EquityUniverse.Window(ctx, portfolio.Months(s.PriceSMALength), data.MetricClose)
 	if err != nil {
@@ -126,14 +119,12 @@ func (s *GrowthTrendTiming) Compute(ctx context.Context, eng *engine.Engine, str
 	priceBelowSMA := currentPriceValue < smaPriceValue
 
 	// 6. Annotate decision inputs.
-	ts := eng.CurrentDate().Unix()
-
-	strategyPortfolio.Annotate(ts, "unemployment-rate", fmt.Sprintf("%.1f%%", currentUERate))
-	strategyPortfolio.Annotate(ts, "unemployment-sma12", fmt.Sprintf("%.1f%%", averageUERate))
-	strategyPortfolio.Annotate(ts, "unemployment-rising", fmt.Sprintf("%t", unemploymentRising))
-	strategyPortfolio.Annotate(ts, "price", fmt.Sprintf("%.2f", currentPriceValue))
-	strategyPortfolio.Annotate(ts, fmt.Sprintf("price-sma%d", s.PriceSMALength), fmt.Sprintf("%.2f", smaPriceValue))
-	strategyPortfolio.Annotate(ts, "price-below-sma", fmt.Sprintf("%t", priceBelowSMA))
+	batch.Annotate("unemployment-rate", fmt.Sprintf("%.1f%%", currentUERate))
+	batch.Annotate("unemployment-sma12", fmt.Sprintf("%.1f%%", averageUERate))
+	batch.Annotate("unemployment-rising", fmt.Sprintf("%t", unemploymentRising))
+	batch.Annotate("price", fmt.Sprintf("%.2f", currentPriceValue))
+	batch.Annotate(fmt.Sprintf("price-sma%d", s.PriceSMALength), fmt.Sprintf("%.2f", smaPriceValue))
+	batch.Annotate("price-below-sma", fmt.Sprintf("%t", priceBelowSMA))
 
 	// 7. Decision: go defensive only when BOTH signals are bearish.
 	var selectedAsset asset.Asset
@@ -151,7 +142,7 @@ func (s *GrowthTrendTiming) Compute(ctx context.Context, eng *engine.Engine, str
 		justification = "risk-on: growth-trend favorable"
 	}
 
-	strategyPortfolio.Annotate(ts, "justification", justification)
+	batch.Annotate("justification", justification)
 
 	allocation := portfolio.Allocation{
 		Date:          eng.CurrentDate(),
@@ -159,7 +150,7 @@ func (s *GrowthTrendTiming) Compute(ctx context.Context, eng *engine.Engine, str
 		Justification: justification,
 	}
 
-	if err := strategyPortfolio.RebalanceTo(ctx, allocation); err != nil {
+	if err := batch.RebalanceTo(ctx, allocation); err != nil {
 		return fmt.Errorf("rebalance failed: %w", err)
 	}
 
