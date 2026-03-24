@@ -12,3 +12,5 @@ go.work
 go.work.sum
 .env
 growth-trend-timing
+*.db
+!gtt/testdata/snapshot.db

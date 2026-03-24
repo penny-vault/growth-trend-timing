@@ -15,8 +15,11 @@
 
 package main
 
-import "github.com/penny-vault/pvbt/cli"
+import (
+	"github.com/penny-vault/growth-trend-timing/gtt"
+	"github.com/penny-vault/pvbt/cli"
+)
 
 func main() {
-	cli.Run(&GrowthTrendTiming{})
+	cli.Run(&gtt.GrowthTrendTiming{})
 }

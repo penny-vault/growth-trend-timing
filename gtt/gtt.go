@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package gtt
 
 import (
 	"context"
@@ -62,17 +62,17 @@ func (s *GrowthTrendTiming) Describe() engine.StrategyDescription {
 
 func (s *GrowthTrendTiming) Compute(ctx context.Context, eng *engine.Engine, strategyPortfolio portfolio.Portfolio, batch *portfolio.Batch) error {
 	// 1. Fetch equity prices for the SMA calculation.
-	equityDF, err := s.EquityUniverse.Window(ctx, portfolio.Months(s.PriceSMALength), data.MetricClose)
+	equityDF, err := s.EquityUniverse.Window(ctx, portfolio.Months(s.PriceSMALength+1), data.MetricClose)
 	if err != nil {
 		return fmt.Errorf("failed to fetch equity prices: %w", err)
 	}
 
 	// 2. Fetch unemployment rate data for the trend calculation.
-	//    Need 12 months of history to compute the 12-month average.
-	unemploymentAsset := eng.Asset(s.UnemploymentTicker)
-	unemploymentUniverse := eng.Universe(unemploymentAsset)
+	//    Need 13 months of history to compute a 12-month rolling average plus the current value.
+	unrate := eng.Asset(s.UnemploymentTicker)
+	unemploymentUniverse := eng.Universe(unrate)
 
-	unemploymentDF, err := unemploymentUniverse.Window(ctx, portfolio.Months(12), data.Unemployment)
+	unemploymentDF, err := unemploymentUniverse.Window(ctx, portfolio.Months(13), data.MetricClose)
 	if err != nil {
 		return fmt.Errorf("failed to fetch unemployment data: %w", err)
 	}
@@ -100,9 +100,9 @@ func (s *GrowthTrendTiming) Compute(ctx context.Context, eng *engine.Engine, str
 		return nil
 	}
 
-	currentUERate := currentUnemployment.Value(unemploymentAsset, data.Unemployment)
-	averageUERate := unemploymentSMA.Value(unemploymentAsset, data.Unemployment)
-	unemploymentRising := currentUERate > averageUERate
+	currentUnemploymentRate := currentUnemployment.Value(unrate, data.MetricClose)
+	averageUnemploymentRate := unemploymentSMA.Value(unrate, data.MetricClose)
+	unemploymentRising := currentUnemploymentRate > averageUnemploymentRate
 
 	// 5. Check price trend: is equity price below its SMA?
 	priceSMA := equityMonthly.Rolling(s.PriceSMALength).Mean()
@@ -119,8 +119,8 @@ func (s *GrowthTrendTiming) Compute(ctx context.Context, eng *engine.Engine, str
 	priceBelowSMA := currentPriceValue < smaPriceValue
 
 	// 6. Annotate decision inputs.
-	batch.Annotate("unemployment-rate", fmt.Sprintf("%.1f%%", currentUERate))
-	batch.Annotate("unemployment-sma12", fmt.Sprintf("%.1f%%", averageUERate))
+	batch.Annotate("unemployment-rate", fmt.Sprintf("%.1f%%", currentUnemploymentRate))
+	batch.Annotate("unemployment-sma12", fmt.Sprintf("%.1f%%", averageUnemploymentRate))
 	batch.Annotate("unemployment-rising", fmt.Sprintf("%t", unemploymentRising))
 	batch.Annotate("price", fmt.Sprintf("%.2f", currentPriceValue))
 	batch.Annotate(fmt.Sprintf("price-sma%d", s.PriceSMALength), fmt.Sprintf("%.2f", smaPriceValue))
@@ -136,7 +136,7 @@ func (s *GrowthTrendTiming) Compute(ctx context.Context, eng *engine.Engine, str
 	if unemploymentRising && priceBelowSMA {
 		selectedAsset = cashAsset
 		justification = fmt.Sprintf("defensive: UE %.1f%% > avg %.1f%% AND price %.2f < SMA %.2f",
-			currentUERate, averageUERate, currentPriceValue, smaPriceValue)
+			currentUnemploymentRate, averageUnemploymentRate, currentPriceValue, smaPriceValue)
 	} else {
 		selectedAsset = equityAsset
 		justification = "risk-on: growth-trend favorable"
