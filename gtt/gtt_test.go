@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/penny-vault/growth-trend-timing/gtt"
+	"github.com/penny-vault/pvbt/asset"
 	"github.com/penny-vault/pvbt/data"
 	"github.com/penny-vault/pvbt/engine"
 	"github.com/penny-vault/pvbt/portfolio"
@@ -86,7 +87,7 @@ var _ = Describe("GrowthTrendTiming", func() {
 
 		tickers := map[string]bool{}
 		for _, tx := range txns {
-			if tx.Type == portfolio.BuyTransaction || tx.Type == portfolio.SellTransaction {
+			if tx.Type == asset.BuyTransaction || tx.Type == asset.SellTransaction {
 				tickers[tx.Asset.Ticker] = true
 			}
 		}
@@ -101,13 +102,13 @@ var _ = Describe("GrowthTrendTiming", func() {
 
 		type trade struct {
 			date   string
-			txType portfolio.TransactionType
+			txType asset.TransactionType
 			ticker string
 		}
 
 		var trades []trade
 		for _, tx := range txns {
-			if tx.Type == portfolio.BuyTransaction || tx.Type == portfolio.SellTransaction {
+			if tx.Type == asset.BuyTransaction || tx.Type == asset.SellTransaction {
 				trades = append(trades, trade{
 					date:   tx.Date.In(nyc).Format("2006-01-02"),
 					txType: tx.Type,
@@ -117,14 +118,14 @@ var _ = Describe("GrowthTrendTiming", func() {
 		}
 
 		expected := []trade{
-			{"2024-06-28", portfolio.BuyTransaction, "SPY"},
-			{"2024-09-30", portfolio.BuyTransaction, "SPY"},
-			{"2025-03-31", portfolio.SellTransaction, "SPY"},
-			{"2025-03-31", portfolio.BuyTransaction, "BIL"},
-			{"2025-04-30", portfolio.BuyTransaction, "BIL"},
-			{"2025-05-30", portfolio.SellTransaction, "BIL"},
-			{"2025-05-30", portfolio.BuyTransaction, "SPY"},
-			{"2025-09-30", portfolio.BuyTransaction, "SPY"},
+			{"2024-06-28", asset.BuyTransaction, "SPY"},
+			{"2024-09-30", asset.BuyTransaction, "SPY"},
+			{"2025-03-31", asset.SellTransaction, "SPY"},
+			{"2025-03-31", asset.BuyTransaction, "BIL"},
+			{"2025-04-30", asset.BuyTransaction, "BIL"},
+			{"2025-05-30", asset.SellTransaction, "BIL"},
+			{"2025-05-30", asset.BuyTransaction, "SPY"},
+			{"2025-09-30", asset.BuyTransaction, "SPY"},
 		}
 
 		Expect(trades).To(HaveLen(len(expected)))
