@@ -38,7 +38,7 @@ var description string
 type GrowthTrendTiming struct {
 	EquityUniverse     universe.Universe `pvbt:"equity" desc:"Equity asset to hold in risk-on mode" default:"SPY" suggest:"default=SPY"`
 	CashTicker         string            `pvbt:"cash-ticker" desc:"Cash asset for defensive allocation" default:"BIL" suggest:"default=BIL"`
-	UnemploymentTicker string            `pvbt:"unemployment-ticker" desc:"Unemployment rate data series" default:"UNRATE" suggest:"default=UNRATE"`
+	UnemploymentTicker string            `pvbt:"unemployment-ticker" desc:"Unemployment rate data series" default:"FRED:UNRATE" suggest:"default=FRED:UNRATE"`
 	PriceSMALength     int               `pvbt:"price-sma-length" desc:"Moving average period in months for price trend" default:"10" suggest:"default=10"`
 }
 

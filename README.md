@@ -20,7 +20,7 @@ The strategy signals a bear market less than 15% of the time but captures most m
 
 - **Equity Ticker**: The equity asset to hold (default: SPY)
 - **Cash Ticker**: The cash/bond asset for defensive allocation (default: BIL)
-- **Unemployment Ticker**: The unemployment rate data series (default: UNRATE)
+- **Unemployment Ticker**: The unemployment rate data series (default: FRED:UNRATE)
 - **Price SMA Length**: Moving average period in months for the price trend (default: 10)
 
 ## References
