@@ -53,8 +53,8 @@ func (s *GrowthTrendTiming) Describe() engine.StrategyDescription {
 		ShortCode:   "gtt",
 		Description: description,
 		Source:      "https://www.philosophicaleconomics.com/2016/02/uetrend/",
-		Version:     "1.0.0",
-		VersionDate: time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC),
+		Version:     "1.0.1",
+		VersionDate: time.Date(2026, 7, 14, 0, 0, 0, 0, time.UTC),
 		Schedule:    "@monthend",
 		Benchmark:   "SPY",
 	}
